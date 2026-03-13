@@ -172,7 +172,7 @@ export default function AlbumPage() {
       </div>
 
       {selectedPhoto && (
-        <PhotoModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
+        <PhotoModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} getAuthHeader={getAuthHeader} />
       )}
     </AppShell>
   );
