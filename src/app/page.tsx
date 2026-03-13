@@ -75,17 +75,39 @@ export default function Home() {
     }
   }, [stats.total, stats.done, stats.error]);
 
-  // Restore session on load
+  // Restore session on load — verify PIN is still valid
   useEffect(() => {
     if (loading) return;
-    if (session?.guestId) {
-      setPin(session.pin);
-      setStep("main");
-    } else if (session?.pin) {
-      setPin(session.pin);
-      setStep("loginChoice");
-    }
-  }, [loading, session]);
+    if (!session?.pin) return;
+
+    fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: session.pin }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          // PIN changed on server — clear stale session
+          clearSession();
+          return;
+        }
+        setPin(session.pin);
+        if (session.guestId) {
+          setStep("main");
+        } else {
+          setStep("loginChoice");
+        }
+      })
+      .catch(() => {
+        // Network error — allow offline access with existing session
+        setPin(session.pin);
+        if (session.guestId) {
+          setStep("main");
+        } else {
+          setStep("loginChoice");
+        }
+      });
+  }, [loading, session, clearSession]);
 
   // Fetch scenes when authenticated
   useEffect(() => {
@@ -438,7 +460,7 @@ export default function Home() {
 
       {/* Photo modal */}
       {selectedPhoto && (
-        <PhotoModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
+        <PhotoModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} getAuthHeader={getAuthHeader} />
       )}
     </AppShell>
   );

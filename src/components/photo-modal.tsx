@@ -11,9 +11,10 @@ interface PhotoModalProps {
     uploadedAt?: string;
   };
   onClose: () => void;
+  getAuthHeader?: () => Record<string, string>;
 }
 
-export function PhotoModal({ photo, onClose }: PhotoModalProps) {
+export function PhotoModal({ photo, onClose, getAuthHeader }: PhotoModalProps) {
   const startY = useRef<number | null>(null);
   const currentY = useRef<number | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -32,7 +33,11 @@ export function PhotoModal({ photo, onClose }: PhotoModalProps) {
     const filename = `${photo.scene?.name || "photo"}_${photo.guest?.nickname || "guest"}_${photo.id}.jpg`;
 
     try {
-      const res = await fetch(photo.url);
+      // サーバー側プロキシ経由でダウンロード（S3 CORSの問題を回避）
+      const res = await fetch(`/api/photos/download?id=${photo.id}`, {
+        headers: getAuthHeader?.() || {},
+      });
+      if (!res.ok) throw new Error("download failed");
       const blob = await res.blob();
 
       // モバイル: Web Share API でネイティブ共有シートを表示
