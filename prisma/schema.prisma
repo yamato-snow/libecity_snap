@@ -1,0 +1,42 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Invitee {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  guests    Guest[]
+}
+
+model Guest {
+  id        Int      @id @default(autoincrement())
+  nickname  String   @unique
+  inviteeId Int?
+  invitee   Invitee? @relation(fields: [inviteeId], references: [id])
+  createdAt DateTime @default(now())
+  photos    Photo[]
+}
+
+model Scene {
+  id        Int     @id @default(autoincrement())
+  name      String
+  sortOrder Int     @default(0)
+  photos    Photo[]
+}
+
+model Photo {
+  id          String   @id @default(uuid())
+  guest       Guest    @relation(fields: [guestId], references: [id])
+  guestId     Int
+  scene       Scene    @relation(fields: [sceneId], references: [id])
+  sceneId     Int
+  storagePath String
+  uploadedAt  DateTime @default(now())
+}

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && npx create-next-app@latest . --typescript --tailwind --eslint --app --turbopack --src-dir --yes 2>&1)",
+      "Bash(mkdir -p /tmp/wedding-snap-backup)",
+      "Bash(cp -r .claude docs COST_ESTIMATE.md README.md /tmp/wedding-snap-backup/)",
+      "Read(//tmp/**)",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && mv .claude /tmp/wedding-snap-backup/ && mv docs /tmp/wedding-snap-backup/docs2 && rm COST_ESTIMATE.md README.md && npx create-next-app@latest . --typescript --tailwind --eslint --app --turbopack --src-dir --yes 2>&1)",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && cp -r .claude /tmp/wedding-snap-backup/.claude2 && rm -rf .claude && rm -rf docs && rm -f COST_ESTIMATE.md README.md && npx create-next-app@latest . --typescript --tailwind --eslint --app --turbopack --src-dir --yes 2>&1)",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && npm install -D prisma @types/uuid 2>&1)",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && npm install -D tsx 2>&1)",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && npx prisma migrate dev --name init 2>&1)",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && npx tsc --noEmit 2>&1)",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && timeout 15 npx next dev 2>&1 || true)",
+      "Bash(cd \"I:/Sandbox/wedding-snap\" && npm run build 2>&1)",
+      "Bash(netstat -ano | findstr LISTENING | findstr -E \":\\(3[0-9]{3,4}|5555|9010|9180|7679\\) \" | sort)",
+      "Bash(for pid:*)",
+      "Bash(tasklist /FI \"PID eq 130888\" && tasklist /FI \"PID eq 63436\" && tasklist /FI \"PID eq 7732\" && tasklist /FI \"PID eq 22764\" && tasklist /FI \"PID eq 60960\" && tasklist /FI \"PID eq 53476\" && tasklist /FI \"PID eq 115856\" && tasklist /FI \"PID eq 159132\" && tasklist /FI \"PID eq 172696\" && tasklist /FI \"PID eq 162440\" && tasklist /FI \"PID eq 92208\" && tasklist /FI \"PID eq 115500\")",
+      "Bash(find /i/Sandbox/wedding-snap -type f \\\\\\( -name \"*.json\" -o -name \"*.yml\" -o -name \"*.yaml\" \\\\\\) -path \"*/docs/*\" -o -path \"*/infrastructure/*\" -o -path \"*/.aws/*\" 2>/dev/null | grep -v node_modules | head -20)"
+    ]
+  }
+}

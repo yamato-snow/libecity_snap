@@ -1,0 +1,27 @@
+-- CreateTable
+CREATE TABLE "Guest" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "nickname" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE "Scene" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "name" TEXT NOT NULL,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0
+);
+
+-- CreateTable
+CREATE TABLE "Photo" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "guestId" INTEGER NOT NULL,
+    "sceneId" INTEGER NOT NULL,
+    "storagePath" TEXT NOT NULL,
+    "uploadedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Photo_guestId_fkey" FOREIGN KEY ("guestId") REFERENCES "Guest" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "Photo_sceneId_fkey" FOREIGN KEY ("sceneId") REFERENCES "Scene" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Guest_nickname_key" ON "Guest"("nickname");
