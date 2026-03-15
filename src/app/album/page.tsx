@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "@/hooks/use-session";
+import { usePhotoSelection } from "@/hooks/use-photo-selection";
 import { AppShell } from "@/components/app-shell";
 import { FilterBar } from "@/components/filter-bar";
 import { PhotoGrid } from "@/components/photo-grid";
 import { PhotoModal } from "@/components/photo-modal";
+import { BatchShareButton } from "@/components/batch-share-button";
 import type { Scene, Guest } from "@/types";
 import Link from "next/link";
 
@@ -29,6 +31,15 @@ export default function AlbumPage() {
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
+  const {
+    selectMode,
+    selectedIds,
+    enterSelectMode,
+    exitSelectMode,
+    toggleSelect,
+    toggleSelectAll,
+    selectedCount,
+  } = usePhotoSelection();
 
   const fetchPhotos = useCallback(
     async (cursor?: string | null, reset = false) => {
@@ -123,25 +134,55 @@ export default function AlbumPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-800">共有アルバム</h1>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              hasActiveFilters || showFilters
-                ? "bg-emerald-500 text-white"
-                : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-            フィルター
-          </button>
+          {selectMode ? (
+            <>
+              <button
+                onClick={exitSelectMode}
+                className="px-3 py-1.5 rounded-full text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                キャンセル
+              </button>
+              <span className="text-sm font-medium text-gray-700">
+                {selectedCount}枚を選択中
+              </span>
+              <button
+                onClick={() => toggleSelectAll(photos.map((p) => p.id))}
+                className="px-3 py-1.5 rounded-full text-sm font-medium text-emerald-600 hover:bg-emerald-50 transition-colors"
+              >
+                {selectedCount === photos.length ? "全解除" : "全選択"}
+              </button>
+            </>
+          ) : (
+            <>
+              <h1 className="text-lg font-bold text-gray-800">共有アルバム</h1>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={enterSelectMode}
+                  className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                >
+                  選択
+                </button>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                    hasActiveFilters || showFilters
+                      ? "bg-emerald-500 text-white"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    />
+                  </svg>
+                  フィルター
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
@@ -160,7 +201,13 @@ export default function AlbumPage() {
           </div>
         )}
 
-        <PhotoGrid photos={photos} onPhotoClick={setSelectedPhoto} />
+        <PhotoGrid
+          photos={photos}
+          onPhotoClick={setSelectedPhoto}
+          selectMode={selectMode}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+        />
 
         {/* Infinite scroll sentinel */}
         <div ref={observerRef} className="h-4" />
@@ -171,8 +218,17 @@ export default function AlbumPage() {
         )}
       </div>
 
-      {selectedPhoto && (
+      {selectedPhoto && !selectMode && (
         <PhotoModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} getAuthHeader={getAuthHeader} />
+      )}
+
+      {selectMode && selectedCount > 0 && (
+        <BatchShareButton
+          selectedIds={selectedIds}
+          photos={photos}
+          getAuthHeader={getAuthHeader}
+          onComplete={exitSelectMode}
+        />
       )}
     </AppShell>
   );
