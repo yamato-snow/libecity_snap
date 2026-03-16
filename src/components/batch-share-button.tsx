@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 
 interface PhotoUrl {
   id: string;
@@ -25,7 +26,7 @@ export function BatchShareButton({
   onComplete,
 }: BatchShareButtonProps) {
   const shareBtnRef = useRef<HTMLButtonElement>(null);
-  const [phase, setPhase] = useState<"idle" | "fetching" | "ready">("idle");
+  const [phase, setPhase] = useState<"idle" | "fetching" | "ready" | "done">("idle");
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   // Store fetched files for the second tap
   const fetchedFilesRef = useRef<File[]>([]);
@@ -76,7 +77,7 @@ export function BatchShareButton({
     try {
       const files = await fetchFiles(ids);
       if (files.length === 0) {
-        alert("ダウンロードに失敗しました");
+        toast.error("ダウンロードに失敗しました");
         setPhase("idle");
         return;
       }
@@ -84,7 +85,7 @@ export function BatchShareButton({
       // Show the "share" button for a fresh user gesture
       setPhase("ready");
     } catch {
-      alert("ダウンロードに失敗しました");
+      toast.error("ダウンロードに失敗しました");
       setPhase("idle");
     }
   }, [selectedIds, fetchFiles]);
@@ -94,23 +95,29 @@ export function BatchShareButton({
     const files = fetchedFilesRef.current;
     if (files.length === 0) return;
 
+    const showDone = (message: string) => {
+      toast.success(message);
+      setPhase("done");
+      fetchedFilesRef.current = [];
+      setTimeout(() => {
+        setPhase("idle");
+        onComplete?.();
+      }, 2000);
+    };
+
     try {
       // Try Web Share API (files ONLY for iOS Safari compatibility)
       if (navigator.share) {
         const canShare = navigator.canShare?.({ files }) ?? false;
         if (canShare) {
           await navigator.share({ files });
-          fetchedFilesRef.current = [];
-          setPhase("idle");
-          onComplete?.();
+          showDone(`${files.length}枚を共有しました`);
           return;
         }
         // canShare not available or returned false — still try
         try {
           await navigator.share({ files });
-          fetchedFilesRef.current = [];
-          setPhase("idle");
-          onComplete?.();
+          showDone(`${files.length}枚を共有しました`);
           return;
         } catch (e) {
           if (e instanceof Error && e.name === "AbortError") {
@@ -127,9 +134,7 @@ export function BatchShareButton({
         for (const photo of selectedPhotos) {
           window.open(photo.url, "_blank");
         }
-        alert(
-          "共有機能が利用できないため、画像を新しいタブで開きました。\n画像を長押しして「写真に追加」で保存してください。"
-        );
+        toast.info("画像を新しいタブで開きました\n長押しして「写真に追加」で保存できます", { duration: 5000 });
       } else {
         // Desktop fallback: download files
         for (const file of files) {
@@ -142,15 +147,13 @@ export function BatchShareButton({
         }
       }
 
-      fetchedFilesRef.current = [];
-      setPhase("idle");
-      onComplete?.();
+      showDone(`${files.length}枚を保存しました`);
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
         setPhase("idle");
         return;
       }
-      alert("保存に失敗しました");
+      toast.error("保存に失敗しました");
       setPhase("idle");
     }
   }, [selectedIds, photos, onComplete]);
@@ -181,7 +184,9 @@ export function BatchShareButton({
             ? `準備中... (${progress.current}/${progress.total})`
             : phase === "ready"
               ? `${fetchedFilesRef.current.length}枚の準備完了`
-              : `${count}枚を選択中`}
+              : phase === "done"
+                ? "保存完了"
+                : `${count}枚を選択中`}
         </span>
 
         {phase === "idle" && (
@@ -225,6 +230,16 @@ export function BatchShareButton({
             </svg>
             タップして共有
           </button>
+        )}
+
+        {phase === "done" && (
+          <span className="px-5 py-2 bg-emerald-500 text-white rounded-full text-sm font-medium
+                         flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            完了
+          </span>
         )}
       </div>
     </div>
