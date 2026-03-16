@@ -158,15 +158,18 @@ export function BatchShareButton({
   handleShareRef.current = handleShare;
 
   // Native DOM event listener for the share button (fresh user gesture for navigator.share)
+  // Re-attach when phase changes to "ready" (button is conditionally rendered)
   useEffect(() => {
+    if (phase !== "ready") return;
     const btn = shareBtnRef.current;
+    if (!btn) return;
     const handler = (e: MouseEvent) => {
       e.stopPropagation();
       handleShareRef.current();
     };
-    btn?.addEventListener("click", handler);
-    return () => btn?.removeEventListener("click", handler);
-  }, []);
+    btn.addEventListener("click", handler);
+    return () => btn.removeEventListener("click", handler);
+  }, [phase]);
 
   const count = selectedIds.size;
 
