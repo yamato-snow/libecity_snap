@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -98,6 +99,12 @@ export default function RootLayout({
         <div id="app-root">
           {children}
         </div>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: { fontSize: "14px" },
+          }}
+        />
         <script dangerouslySetInnerHTML={{ __html: browserCheckScript }} />
       </body>
     </html>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useCallback, useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface PhotoModalProps {
   photo: {
@@ -22,6 +23,7 @@ export function PhotoModal({ photo, onClose, getAuthHeader }: PhotoModalProps) {
   const shareBtnRef = useRef<HTMLButtonElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [downloadState, setDownloadState] = useState<"idle" | "downloading" | "success">("idle");
 
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
@@ -30,8 +32,10 @@ export function PhotoModal({ photo, onClose, getAuthHeader }: PhotoModalProps) {
   // handleDownload を ref に保持（ネイティブイベントリスナーから参照するため）
   const handleDownloadRef = useRef<() => void>(() => {});
   handleDownloadRef.current = async () => {
+    if (downloadState !== "idle") return;
     const filename = `${photo.scene?.name || "photo"}_${photo.guest?.nickname || "guest"}_${photo.id}.jpg`;
 
+    setDownloadState("downloading");
     try {
       // サーバー側プロキシ経由でダウンロード（S3 CORSの問題を回避）
       const res = await fetch(`/api/photos/download?id=${photo.id}`, {
@@ -45,6 +49,9 @@ export function PhotoModal({ photo, onClose, getAuthHeader }: PhotoModalProps) {
         const file = new File([blob], filename, { type: blob.type });
         if (navigator.canShare?.({ files: [file] })) {
           await navigator.share({ files: [file] });
+          setDownloadState("success");
+          toast.success("共有しました");
+          setTimeout(() => setDownloadState("idle"), 2000);
           return;
         }
       }
@@ -52,6 +59,9 @@ export function PhotoModal({ photo, onClose, getAuthHeader }: PhotoModalProps) {
       // モバイル: 画像を新タブで直接表示（長押しで「写真に追加」が可能）
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         window.open(photo.url, "_blank");
+        setDownloadState("success");
+        toast.success("画像を開きました — 長押しで保存できます");
+        setTimeout(() => setDownloadState("idle"), 2000);
         return;
       }
 
@@ -62,10 +72,17 @@ export function PhotoModal({ photo, onClose, getAuthHeader }: PhotoModalProps) {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+      setDownloadState("success");
+      toast.success("ダウンロードしました");
+      setTimeout(() => setDownloadState("idle"), 2000);
     } catch (e) {
       // ユーザーが共有をキャンセルした場合はエラーにしない
-      if (e instanceof Error && e.name === "AbortError") return;
-      alert("ダウンロードに失敗しました");
+      if (e instanceof Error && e.name === "AbortError") {
+        setDownloadState("idle");
+        return;
+      }
+      setDownloadState("idle");
+      toast.error("ダウンロードに失敗しました");
     }
   };
 
@@ -176,14 +193,37 @@ export function PhotoModal({ photo, onClose, getAuthHeader }: PhotoModalProps) {
         {/* Download / Share button */}
         <button
           ref={shareBtnRef}
-          className="px-6 py-2 bg-white text-gray-800 rounded-full font-medium
-                     hover:bg-gray-100 transition-colors active:bg-gray-200 cursor-pointer"
+          disabled={downloadState === "downloading"}
+          className={`px-6 py-2 rounded-full font-medium transition-all duration-200 flex items-center gap-2 cursor-pointer
+            ${downloadState === "success"
+              ? "bg-emerald-500 text-white"
+              : downloadState === "downloading"
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-white text-gray-800 hover:bg-gray-100 active:bg-gray-200"
+            }`}
         >
-          {isMobile ? "共有" : "ダウンロード"}
+          {downloadState === "downloading" && (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+          {downloadState === "success" && (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+          {downloadState === "downloading"
+            ? "処理中..."
+            : downloadState === "success"
+              ? "保存しました"
+              : isMobile ? "共有" : "ダウンロード"}
         </button>
-        <p className="text-white/60 text-xs">
-          画像を長押しで写真に保存できます
-        </p>
+        {isMobile && downloadState === "idle" && (
+          <p className="text-white/60 text-xs">
+            画像を長押しで写真に保存できます
+          </p>
+        )}
       </div>
     </div>
   );
